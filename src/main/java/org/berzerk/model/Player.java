@@ -1,43 +1,53 @@
 package org.berzerk.model;
 
+import javafx.scene.input.KeyCode;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.List;
+
 
 @Getter
 @Setter
 public class Player extends Entity {
-
-    int score = 0;
+    private int score = 0;
 
     public Player(int id, int health, int x, int y, int score) {
-        super(id, health, x, y);
+        super(id, health, x, y, Color.GREEN);
         this.score = score;
     }
 
-    public void moveUp() {
-        if (this.y > 0) {
-            this.y -= 5;
+    @Override
+    public void move(KeyCode keyCode, int gameFormWidth, int gameFormHeight, int cellWidth, int cellHeight, List<Rectangle> mazeWalls) {
+        double nextX = getX();
+        double nextY = getY();
+
+        switch (keyCode) {
+            case D:
+                nextX += 5;
+                break;
+            case A:
+                nextX -= 5;
+                break;
+            case W:
+                nextY -= 5;
+                break;
+            case S: 
+                nextY += 5;
+                break;
+            default:
+                break;
         }
+
+        if (canMove(nextX, nextY, cellWidth, cellHeight, mazeWalls, gameFormWidth, gameFormHeight)) {
+            setX((int) nextX);
+            setY((int) nextY);
+        }
+
+        updateRepresentationPosition();
     }
 
-    public void moveDown(double sceneHeight) {
-        if (this.y < sceneHeight ) {
-            this.y += 5;
-        }
-    }
-
-    public void moveLeft() {
-        if (this.x > 0) {
-            this.x -= 5;
-        }
-    }
-
-    public void moveRight(double sceneWidth) {
-        if (this.x < sceneWidth ) {
-            this.x += 5;
-        }
-    }
 
 }
-
-

@@ -33,6 +33,7 @@ public class MenuController {
         stage.show();
 
         BerzerkController controller = fxmlLoader.getController();
+        controller.setStage(stage);
     }
 
     public void quitGame() throws IOException {

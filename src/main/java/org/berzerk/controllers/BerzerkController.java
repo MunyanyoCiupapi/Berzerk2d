@@ -1,5 +1,7 @@
 package org.berzerk.controllers;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.berzerk.Berzerk;
 import org.berzerk.model.Enemy;
 import org.berzerk.model.Map;
@@ -20,18 +22,20 @@ import javafx.stage.Stage;
 import java.io.IOException;
 import java.util.*;
 
+@Getter
+@Setter
 public class BerzerkController {
 
     @FXML
     public AnchorPane gameForm;
     private Player player;
     private AnimationTimer gameLoop;
-    private Circle playerRepresentation;
     private final Set<KeyCode> keysPressed = new HashSet<>();
     private List<Projectile> projectiles;
     private List<Enemy> enemies;
+    private Stage stage;
+    private Integer numOfEnemies = 10;
 
-    private int[][] maze;
     private List<Rectangle> mazeWalls;
     private Map map;
 
@@ -44,12 +48,9 @@ public class BerzerkController {
     }
 
     public void initialize() {
-        playerRepresentation = new Circle(10);
-        playerRepresentation.setFill(Color.GREEN);
-        gameForm.getChildren().add(playerRepresentation);
 
-        playerRepresentation.setCenterX(player.getX());
-        playerRepresentation.setCenterY(player.getY());
+        gameForm.getChildren().add(player.getRepresentation());
+        player.updateRepresentationPosition();
 
         gameForm.setStyle("-fx-background-color: black;");
 
@@ -70,42 +71,24 @@ public class BerzerkController {
         };
         gameLoop.start();
 
-        gameForm.widthProperty().addListener((obs, oldVal, newVal) -> drawMaze(map));
-        gameForm.heightProperty().addListener((obs, oldVal, newVal) -> drawMaze(map));
-
-        spawnEnemies(10);
-    }
-
-    private void spawnEnemies(int numberOfEnemies) {
-        Random random = new Random();
-
-        for (int i = 0; i < numberOfEnemies; i++) {
-            int x, y;
-            x = random.nextInt(map.getHeight());
-            y = random.nextInt(map.getWidth());
-
-            if(map.isWall(x,y))
-            {
-                do {
-                    x = random.nextInt(map.getHeight());
-                    y = random.nextInt(map.getWidth());
-                } while (map.isWall(x, y));
+        gameForm.widthProperty().addListener((obs, oldVal, newVal) -> {
+            drawMaze(map);
+            if (gameForm.getWidth() > 0 && gameForm.getHeight() > 0) {
+                int cellWidth = (int)(gameForm.getWidth() / map.getWidth());
+                int cellHeight = (int)(gameForm.getHeight() / map.getHeight());
+                spawnEnemies(numOfEnemies, cellWidth, cellHeight);
             }
+        });
 
-
-            Enemy enemy = new Enemy(i, 100, y*40, x*40);
-            enemies.add(enemy);
-
-
-            Circle enemyRepresentation = new Circle(10);
-            enemyRepresentation.setFill(Color.RED);
-            enemyRepresentation.setCenterX(enemy.getX());
-            enemyRepresentation.setCenterY(enemy.getY());
-            gameForm.getChildren().add(enemyRepresentation);
-            enemy.setRepresentation(enemyRepresentation);
-        }
+        gameForm.heightProperty().addListener((obs, oldVal, newVal) -> {
+            drawMaze(map);
+            if (gameForm.getWidth() > 0 && gameForm.getHeight() > 0) {
+                int cellWidth = (int)(gameForm.getWidth() / map.getWidth());
+                int cellHeight = (int)(gameForm.getHeight() / map.getHeight());
+                spawnEnemies(numOfEnemies, cellWidth, cellHeight);
+            }
+        });
     }
-
 
     private void drawMaze(Map map) {
 
@@ -129,6 +112,22 @@ public class BerzerkController {
     }
 
 
+    private void spawnEnemies(int numberOfEnemies, int cellWidth, int cellHeight) {
+        Random random = new Random();
+
+        for (int i = 0; i < numberOfEnemies; i++) {
+            int x, y;
+
+            do {
+                x = random.nextInt(map.getWidth());
+                y = random.nextInt(map.getHeight());
+            } while (map.isWall(y, x));
+
+            Enemy enemy = new Enemy(i, 100, x * cellWidth, y * cellHeight);
+            enemies.add(enemy);
+            gameForm.getChildren().add(enemy.getRepresentation());
+        }
+    }
 
 
     public void getInputs() {
@@ -148,51 +147,20 @@ public class BerzerkController {
 
         int cellWidth = (int)(gameForm.getWidth() / map.getWidth());
         int cellHeight = (int)(gameForm.getHeight() / map.getHeight());
-        int row, col;
 
         for (KeyCode key : keysPressed) {
-            switch (key) {
-                case W:
-                    row = (player.getY() - 5) / cellHeight;
-                    col = player.getX() / cellWidth;
-                    if (row >= 0 && row < map.getHeight() && !map.isWall(row, col)) {
-                        player.moveUp();
-                    }
-                    break;
-                case S:
-                    row = (player.getY() + 5) / cellHeight;
-                    col = player.getX() / cellWidth;
-                    if (row >= 0 && row < map.getHeight() && !map.isWall(row, col)) {
-                        player.moveDown(gameForm.getHeight());
-                    }
-                    break;
-                case A:
-                    row = player.getY() / cellHeight;
-                    col = (player.getX() - 5) / cellWidth;
-                    if (col >= 0 && col < map.getWidth() && !map.isWall(row, col)) {
-                        player.moveLeft();
-                    }
-                    break;
-                case D:
-                    row = player.getY() / cellHeight;
-                    col = (player.getX() + 5) / cellWidth;
-                    if (col >= 0 && col < map.getWidth() && !map.isWall(row, col)) {
-                        player.moveRight(gameForm.getWidth());
-                    }
-                    break;
-                default:
-                    break;
-            }
+            player.move(key, (int) gameForm.getWidth(), (int) gameForm.getHeight(), cellWidth, cellHeight, mazeWalls);
+        }
+        for (Enemy enemy : enemies) {
+            enemy.move(null, (int) gameForm.getWidth(), (int) gameForm.getHeight(), cellWidth, cellHeight, mazeWalls);
         }
 
-        playerRepresentation.setCenterX(player.getX());
-        playerRepresentation.setCenterY(player.getY());
+        player.updateRepresentationPosition();
 
         for (Enemy enemy : enemies) {
-            enemy.getRepresentation().setCenterX(enemy.getX());
-            enemy.getRepresentation().setCenterY(enemy.getY());
+            enemy.updateRepresentationPosition();
 
-            if (playerRepresentation.getBoundsInParent().intersects(enemy.getRepresentation().getBoundsInParent())) {
+            if (player.collidesWith(enemy)) {
                 restartGame();
                 return;
             }
