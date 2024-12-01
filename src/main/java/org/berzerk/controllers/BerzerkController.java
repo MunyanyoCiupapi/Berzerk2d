@@ -16,6 +16,10 @@ import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
 import org.berzerk.model.Map;
+import org.berzerk.model.Strategy.DefaultGameUpdateStrategy;
+import org.berzerk.model.Strategy.DefaultInitializeGameStrategy;
+import org.berzerk.model.Strategy.GameUpdateStrategy;
+import org.berzerk.model.Strategy.InitializationStrategy;
 
 import java.io.IOException;
 import java.util.*;
@@ -37,58 +41,25 @@ public class BerzerkController {
     private List<Rectangle> mazeWalls;
     private Map map;
 
+    private InitializationStrategy initializationStrategy;
+    private GameUpdateStrategy gameUpdateStrategy;
+
+
     public BerzerkController() {
         map = new Map();
         player = new Player(1, 100, 100, 100, 0);
         projectiles = new ArrayList<>();
         mazeWalls = new ArrayList<>();
         enemies = new ArrayList<>();
+        this.initializationStrategy = new DefaultInitializeGameStrategy();
+        this.gameUpdateStrategy = new DefaultGameUpdateStrategy();
     }
 
     public void initialize() {
-
-        gameForm.getChildren().add(player.getRepresentation());
-        player.updateRepresentationPosition();
-
-        gameForm.setStyle("-fx-background-color: black;");
-
-
-        gameForm.sceneProperty().addListener((observable, oldScene, newScene) -> {
-            if (newScene != null) {
-                getInputs();
-                drawMaze(new Map());
-            }
-        });
-
-        gameForm.setOnMouseClicked(this::mouseShoot);
-
-        gameLoop = new AnimationTimer() {
-            public void handle(long now) {
-                updateGame();
-            }
-        };
-        gameLoop.start();
-
-        gameForm.widthProperty().addListener((obs, oldVal, newVal) -> {
-            drawMaze(map);
-            if (gameForm.getWidth() > 0 && gameForm.getHeight() > 0) {
-                int cellWidth = (int)(gameForm.getWidth() / map.getWidth());
-                int cellHeight = (int)(gameForm.getHeight() / map.getHeight());
-                spawnEnemies(numOfEnemies, cellWidth, cellHeight);
-            }
-        });
-
-        gameForm.heightProperty().addListener((obs, oldVal, newVal) -> {
-            drawMaze(map);
-            if (gameForm.getWidth() > 0 && gameForm.getHeight() > 0) {
-                int cellWidth = (int)(gameForm.getWidth() / map.getWidth());
-                int cellHeight = (int)(gameForm.getHeight() / map.getHeight());
-                spawnEnemies(numOfEnemies, cellWidth, cellHeight);
-            }
-        });
+        initializationStrategy.initialize(this);
     }
 
-    private void drawMaze(Map map) {
+    public void drawMaze(Map map) {
 
         mazeWalls.clear();
         gameForm.getChildren().removeIf(node -> node instanceof Rectangle);
@@ -110,7 +81,7 @@ public class BerzerkController {
     }
 
 
-    private void spawnEnemies(int numberOfEnemies, int cellWidth, int cellHeight) {
+    public void spawnEnemies(int numberOfEnemies, int cellWidth, int cellHeight) {
         Random random = new Random();
 
         for (int i = 0; i < numberOfEnemies; i++) {
@@ -135,55 +106,18 @@ public class BerzerkController {
         scene.setOnKeyReleased(event -> keysPressed.remove(event.getCode()));
     }
 
-    private void mouseShoot(MouseEvent event) {
+    public void mouseShoot(MouseEvent event) {
         double mouseX = event.getSceneX();
         double mouseY = event.getSceneY();
         Projectile projectile = new Projectile(player.getX(), player.getY(), mouseX, mouseY);
         gameForm.getChildren().add(projectile.getRepresentation());
         projectiles.add(projectile);
     }
-    private void updateGame() {
+    public void updateGame() {
 
-        int cellWidth = (int)(gameForm.getWidth() / map.getWidth());
-        int cellHeight = (int)(gameForm.getHeight() / map.getHeight());
-
-        for (KeyCode key : keysPressed) {
-            player.move(key, (int) gameForm.getWidth(), (int) gameForm.getHeight(), cellWidth, cellHeight, mazeWalls);
-        }
-        for (Enemy enemy : enemies) {
-            enemy.move(null, (int) gameForm.getWidth(), (int) gameForm.getHeight(), cellWidth, cellHeight, mazeWalls);
-        }
-
-        player.updateRepresentationPosition();
-
-        for (Enemy enemy : enemies) {
-            enemy.updateRepresentationPosition();
-
-            if (player.collidesWith(enemy)) {
-                restartGame();
-                return;
-            }
-        }
-
-
-        projectiles.removeIf(projectile -> {
-            boolean projectileHit = false;
-
-            for (Enemy enemy : enemies) {
-                if (projectile.getRepresentation().getBoundsInParent().intersects(enemy.getRepresentation().getBoundsInParent())) {
-                    enemy.getRepresentation().setVisible(false);
-                    gameForm.getChildren().remove(enemy.getRepresentation());
-                    enemies.remove(enemy);
-                    projectileHit = true;
-                    break;
-                }
-            }
-
-            projectile.update(mazeWalls);
-            return projectile.isOffScreen(gameForm.getWidth(), gameForm.getHeight()) || !projectile.getRepresentation().isVisible() || projectileHit;
-        });
+        gameUpdateStrategy.update(this);
     }
-    private void restartGame() {
+    public void restartGame() {
         try {
             FXMLLoader fxmlLoader = new FXMLLoader(Berzerk.class.getResource("/menu.fxml"));
             Scene scene = new Scene(fxmlLoader.load());
