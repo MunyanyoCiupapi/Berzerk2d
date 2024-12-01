@@ -3,10 +3,7 @@ package org.berzerk.controllers;
 import lombok.Getter;
 import lombok.Setter;
 import org.berzerk.Berzerk;
-import org.berzerk.model.Enemy;
-import org.berzerk.model.Map;
-import org.berzerk.model.Player;
-import org.berzerk.model.Projectile;
+import org.berzerk.model.*;
 import javafx.animation.AnimationTimer;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -18,6 +15,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
+import org.berzerk.model.Map;
 
 import java.io.IOException;
 import java.util.*;
@@ -123,7 +121,8 @@ public class BerzerkController {
                 y = random.nextInt(map.getHeight());
             } while (map.isWall(y, x));
 
-            Enemy enemy = new Enemy(i, 100, x * cellWidth, y * cellHeight);
+            EnemyType type = (i % 2 == 0) ? EnemyType.MOVING : EnemyType.STATIONARY;
+            Enemy enemy = EnemyFactory.createEnemy(type, i, 100, x * cellWidth, y * cellHeight);
             enemies.add(enemy);
             gameForm.getChildren().add(enemy.getRepresentation());
         }

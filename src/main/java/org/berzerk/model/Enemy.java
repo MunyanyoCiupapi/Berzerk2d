@@ -16,9 +16,8 @@ public class Enemy extends Entity {
     private Random random;
 
 
-    public Enemy(int id, int health, int x, int y) {
-        super(id, health, x, y, Color.RED);
-        this.random = new Random();
+    public Enemy(int id, int health, int x, int y, Color color) {
+        super(id, health, x, y, color);
     }
 
 
