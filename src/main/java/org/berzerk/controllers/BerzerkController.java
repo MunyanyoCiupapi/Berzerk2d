@@ -122,8 +122,12 @@ public class BerzerkController {
             FXMLLoader fxmlLoader = new FXMLLoader(Berzerk.class.getResource("/menu.fxml"));
             Scene scene = new Scene(fxmlLoader.load());
             Stage stage = (Stage) gameForm.getScene().getWindow();
-            stage.setScene(scene);
-            stage.show();
+
+            if(stage != null)
+            {
+                stage.setScene(scene);
+                stage.show();
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
